@@ -1,6 +1,6 @@
 public class Player {
-    private String name;
-    private String pronoun;
+    private final String name;
+    private final String pronoun;
 
     public Player(String name, String pronoun) {
         this.name = name;

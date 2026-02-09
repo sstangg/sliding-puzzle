@@ -4,106 +4,99 @@ import java.util.HashMap;
 public class Board {
     private final int rows;
     private final int cols;
-    private final int[][] board;
-    public final HashMap<Integer, Point> numMap;
-    public final static int BLANK = 0;
+    private final Tile[][] board;
+    public final HashMap<Integer, Point> numMap; // change to private
+    private final static int BLANK = 0;
 
     // default constructor
     public Board() {
         this.rows = 3;
         this.cols = 3;
-        this.board = new int[3][3];
+        this.board = new Tile[3][3];
         this.numMap = new HashMap<>();
 
-        // random nums
         fillBoard();
+        fillSolutions();
     }
-    // custom constructorsrc 
+    // custom constructors
     public Board(int rows, int cols) {
-        // mac / min reqs for dims
+        // min reqs for dimensions
         if (rows < 2 || cols < 2) {
             throw new IllegalArgumentException("Dimensions smaller than 2 not permitted.");
         }
 
         this.rows = rows;
         this.cols = cols;
-        this.board = new int[rows][cols];
-        
+        this.board = new Tile[rows][cols];
         this.numMap = new HashMap<>();
 
         fillBoard();
+        fillSolutions();
     }
+    
     // randomly assign stuff in Board
     private void fillBoard() {
-        int num = (int) (Math.random()*(this.rows*this.cols)); // change later to random
+        int num = (int) (Math.random()*(this.rows*this.cols));
         for (int r = 0; r < this.rows; r++) {
             for (int c = 0; c < this.cols; c++) {
 
                 // if rand int already in the map, pick until a new one is found.
                 while (this.numMap.containsKey(num)) {
-                    num = (int) (Math.random()*(this.rows*this.cols));                }
-                this.board[r][c] = num; // change later to random
+                    num = (int) (Math.random()*(this.rows*this.cols));                
+                }
+                this.board[r][c] = new Tile(r, c, num); 
                 this.numMap.put(num, new Point(r,c));
             }
 
         }
     }
+
+    // fillSolutions sets the correct values for each board tile
+    private void fillSolutions() {
+        int num = 1;
+        for (int r = 0; r < this.rows; r++) {
+            for (int c = 0; c < this.cols; c++) {
+                Tile tile = this.board[r][c];
+
+                if (r == this.rows-1 && c == this.cols-1) { // if last tile, put blank
+                    tile.setCorrectValue(BLANK);
+                    
+                } else {
+                    tile.setCorrectValue(num);
+                    num++;
+                }
+            }
+        }
+    }
+
+    // slideTile allows users to slide the board tiles
     public void slideTile(int num) {
-        if (num <= 0 || num >= this.getRows()*this.getCols()) {
+        // check num in board
+        if (this.numMap.containsKey(num)) {
             throw new IllegalArgumentException("Number out of bounds. Try again!"); 
         }
-        Point numPoint = numMap.get(num);
-        Point blankPoint = numMap.get(BLANK);
+
+        // check num is next to blank tile
+        Point numPoint = this.numMap.get(num);
+        Point blankPoint = this.numMap.get(BLANK);
         if (!(numPoint.x == blankPoint.x && Math.abs(numPoint.y-blankPoint.y)==1) &&
             !(Math.abs(numPoint.x-blankPoint.x)==1 && numPoint.y == blankPoint.y)) {
             throw new IllegalArgumentException("Number "+ num+ " not adjacent to blank tile");
         }
 
         // change numMap
-        Point temp = numMap.get(num);
-        numMap.put(num, numMap.get(BLANK));
-        numMap.put(BLANK, temp);
+        Point temp = this.numMap.get(num);
+        this.numMap.put(num, this.numMap.get(BLANK));
+        this.numMap.put(BLANK, temp);
 
         // change board
-        int numRow = numMap.get(num).x;
-        int numCol = numMap.get(num).y;
-        board[numRow][numCol] = num;
+        int numRow = this.numMap.get(num).x;
+        int numCol = this.numMap.get(num).y;
+        this.board[numRow][numCol].setCurrentValue(num);
 
-        int blankRow = numMap.get(BLANK).x;
-        int blankCol = numMap.get(BLANK).y;
-        board[blankRow][blankCol] = BLANK;
-    }
-
-    // when lined up right, sometimes this doesn't work.
-    // check if board is in increasing order
-    public boolean checkSolved() {
-        boolean isSolved = true;
-        for (int r = 0; r < this.getRows(); r++) {
-            for (int c = 0; c < this.getCols(); c++) {
-                int prev;
-                if (r == 0 && c == 0) { // first in table
-                    continue;
-                }
-                else if (c == 0) {
-                    prev = this.board[r-1][this.getCols()-1]; // last in row
-                } else {
-                    prev = this.board[r][c-1];
-                }
-                
-                int cur = this.board[r][c];
-                if (cur == BLANK) { // if blank
-                    if (c != this.getCols()-1 || r != this.getRows()-1) {
-                        isSolved = false;
-                        break;
-                    }
-                }
-                else if (prev >= cur) { // nondecreasing
-                    isSolved = false;
-                    break;
-                }
-            }
-        }
-        return isSolved;
+        int blankRow = this.numMap.get(BLANK).x;
+        int blankCol = this.numMap.get(BLANK).y;
+        this.board[blankRow][blankCol].setCurrentValue(BLANK);
     }
 
     @Override
@@ -121,37 +114,64 @@ public class Board {
             if (r < rows){
                 boardString += "\n | ";
                 for (int c = 0; c < cols; c++) {
-                    int num = board[r][c];
+                    Tile tile = this.board[r][c];
+                    int num = tile.getCurrentValue();
+
+                    // make the number bold if the position is correct
+                    String numStr = String.valueOf(num);
+                    if (tile.checkCorrect()) {
+                        numStr = boldInt(num);
+                    }
+
                     if (num == 0) {
                         boardString += "   | ";
-                    }else if (num >= 10){
-                        boardString += num +" | ";
+                    }else if (num >= 10){ // add less spaces for double digits
+                        boardString += numStr +" | ";
                     }
-                    else {
-                        boardString += num +"  | ";
+                    else { // add more spaces for single digits
+                        boardString += numStr +"  | ";
                     }
                 }
             }
-            
         
         }
         boardString += "\n";
-        /*
-        bold numbers when the number is in the right place:
-        // ANSI escape code for bold text: \u001B[1m or \033[0;1m
-        String boldOn = "\u001B[1m";
-        // ANSI escape code to reset formatting: \u001B[0m
-        String reset = "\u001B[0m";
-         System.out.println("This is " + boldOn + "bold" + reset + " text.")
-         */
 
         return boardString;
     }
+    // boldInt is a helper method for toString
+    // to bold numbers when the number is in the right place
+    private static String boldInt(int n) {
+        String boldOn = "\u001B[1m";
+        String reset = "\u001B[0m";
+
+        return boldOn + n + reset;
+    }
     
+    // check whether the current board has the correct values
+    public boolean checkSolved() {
+        boolean isSolved = true;
+
+        breakAll:
+        for (int r = 0; r < this.rows; r++) {
+            for (int c = 0; c < this.cols; c++) {
+
+                Tile tile = this.board[r][c];
+
+                if (!tile.checkCorrect()) {
+                    isSolved = false;
+                    break breakAll;
+                }
+            }
+        }
+        return isSolved;
+    }
+
+    // GETTERS
     public int getRows() {
-        return rows;
+        return this.rows;
     }
     public int getCols() {
-        return cols;
+        return this.cols;
     }
 }
