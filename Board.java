@@ -72,7 +72,7 @@ public class Board {
     // slideTile allows users to slide the board tiles
     public void slideTile(int num) {
         // check num in board
-        if (this.numMap.containsKey(num)) {
+        if (!this.numMap.containsKey(num)) {
             throw new IllegalArgumentException("Number out of bounds. Try again!"); 
         }
 
